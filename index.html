@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PIZARRA DE LETRAS - Pizarra Digital Interactiva</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts fallbacks -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Andika:ital,wght@0,400;0,700;1,400&family=Short+Stack&family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        @font-face {
+            font-family: 'Escolar_N';
+            src: url('Escolar_N.TTF') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            --font-escolar: 'Escolar_N', 'Andika', 'Short Stack', 'Comic Sans MS', cursive, sans-serif;
+            --color-vocal: #0d47a1;        /* Deep Blue */
+            --color-consonante: #c62828;   /* Deep Red */
+            --color-digito: #0f172a;       /* Dark Black/Slate */
+            --color-signo: #d97706;        /* Ochre / Golden Amber */
+        }
+
+        body {
+            font-family: var(--font-escolar);
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            background-color: #090d16;
+            overflow: hidden;
+        }
+
+        /* Classroom Whiteboard Frame & Surface */
+        .whiteboard-frame {
+            background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 50%, #94a3b8 100%);
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.9), 0 12px 30px rgba(0, 0, 0, 0.5);
+            border: 8px solid #94a3b8;
+            border-image: linear-gradient(to bottom right, #f8fafc, #94a3b8, #475569) 1;
+        }
+
+        .whiteboard-surface {
+            background-color: #ffffff;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 1) 0%, rgba(241, 245, 249, 0.7) 100%);
+            box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.05);
+            position: relative;
+        }
+
+        /* Whiteboard Line Patterns */
+        .pattern-none { background-image: none !important; }
+        
+        .pattern-simple {
+            background-image: repeating-linear-gradient(transparent, transparent 59px, #94a3b8 60px) !important;
+            background-size: 100% 60px !important;
+        }
+
+        .pattern-doble {
+            background-image: repeating-linear-gradient(
+                transparent, 
+                transparent 30px, 
+                #cbd5e1 30px, 
+                #cbd5e1 31px, 
+                transparent 31px, 
+                transparent 59px, 
+                #64748b 60px
+            ) !important;
+            background-size: 100% 60px !important;
+        }
+
+        .pattern-grid {
+            background-image: 
+                linear-gradient(to right, #e2e8f0 1px, transparent 1px),
+                linear-gradient(to bottom, #e2e8f0 1px, transparent 1px) !important;
+            background-size: 36px 36px !important;
+        }
+
+        /* COMPACT RESPONSIVE TILES FOR TRAY (Fits all 42 without scroll) */
+        .ficha-tile {
+            width: clamp(24px, 2.6vw, 42px);
+            height: clamp(24px, 2.6vw, 42px);
+            aspect-ratio: 1 / 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-family: var(--font-escolar);
+            font-size: clamp(1rem, 1.7vw, 1.7rem);
+            font-weight: 700;
+            cursor: grab;
+            touch-action: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.9);
+            border: 1.5px solid #cbd5e1;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease;
+            position: relative;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        @media (min-width: 1024px) {
+            .ficha-tile {
+                width: clamp(32px, 2.4vw, 46px);
+                height: clamp(32px, 2.4vw, 46px);
+                border-radius: 8px;
+                border-width: 2px;
+            }
+        }
+
+        .ficha-tile:hover {
+            transform: translateY(-2px) scale(1.08);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2), inset 0 1px 0 #fff;
+            z-index: 20;
+        }
+
+        .ficha-tile:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        /* Category Colors */
+        .vocal {
+            color: var(--color-vocal);
+            border-color: #93c5fd;
+            background: linear-gradient(180deg, #ffffff 0%, #eff6ff 100%);
+        }
+
+        .consonante {
+            color: var(--color-consonante);
+            border-color: #fca5a5;
+            background: linear-gradient(180deg, #ffffff 0%, #fef2f2 100%);
+        }
+
+        .digito {
+            color: var(--color-digito);
+            border-color: #cbd5e1;
+            background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+        }
+
+        .signo {
+            color: var(--color-signo);
+            border-color: #fde047;
+            background: linear-gradient(180deg, #ffffff 0%, #fefce8 100%);
+        }
+
+        /* Placed Tile on Canvas Surface */
+        .board-tile {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9px;
+            z-index: 10;
+            cursor: move;
+            touch-action: none;
+            will-change: transform, left, top, width, height;
+            animation: popIn 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.9);
+            border-style: solid;
+        }
+
+        /* Selection Ring for Active Board Tile */
+        .board-tile.selected-tile {
+            box-shadow: 0 0 0 3px #f59e0b, 0 8px 18px rgba(245, 158, 11, 0.4);
+            outline: 2px dashed #d97706;
+            outline-offset: 3px;
+            z-index: 50 !important;
+        }
+
+        .board-tile.dragging {
+            z-index: 999 !important;
+            opacity: 0.92;
+            transform: scale(1.08);
+            box-shadow: 0 14px 24px rgba(0,0,0,0.28);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.2); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Eraser Mode Cursor */
+        .eraser-mode-active #whiteboard {
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="%23ef4444"><path d="M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17a3.98 3.98 0 0 1 0-5.65l9.19-9.19c.79-.78 2.05-.78 2.84 0zM10.59 6.41L4.22 12.78c-.39.39-.39 1.02 0 1.41l3.54 3.54c.39.39 1.02.39 1.41 0l6.37-6.37-4.95-4.95z"/></svg>') 12 12, auto !important;
+        }
+
+        /* Subtle Light Reflection Overlay */
+        .whiteboard-shine {
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 35%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .category-divider {
+            height: clamp(20px, 2.2vw, 36px);
+            width: 2px;
+            background-color: #334155;
+            margin: 0 2px;
+            border-radius: 1px;
+        }
+
+        /* Custom Styled Range Slider */
+        input[type="range"] {
+            accent-color: #f59e0b;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between select-none overflow-hidden bg-slate-950 text-slate-100">
+
+    <header class="bg-slate-900/95 backdrop-blur border-b border-slate-800 px-2 sm:px-3 py-1.5 flex items-center justify-between z-30 shadow-md">
+        <!-- Application Title & Logo -->
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-blue-500/20">
+                Aa
+            </div>
+            <div class="hidden sm:block">
+                <h1 class="text-base font-extrabold tracking-wide text-white leading-tight">PIZARRA DE LETRAS</h1>
+                <p class="text-[10px] text-slate-400">PDI / Tabletas / Web Escolar</p>
+            </div>
+        </div>
+
+        <!-- Central Action Controls & Size Slider -->
+        <div class="flex items-center gap-1.5 sm:gap-2">
+            <!-- Case Selector Button -->
+            <button id="btnCaseToggle" onclick="toggleCase()" class="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 transition text-xs font-semibold border border-slate-700 shadow text-amber-300" title="Cambiar Mayúsculas / Minúsculas">
+                <i class="fa-solid fa-font text-xs"></i>
+                <span id="txtCaseLabel" class="hidden xl:inline">MAYÚSCULAS</span>
+                <span class="bg-amber-400/20 text-amber-300 text-[10px] px-1.5 py-0.2 rounded font-bold" id="badgeCase">ABC</span>
+            </button>
+
+            <!-- Board Line Pattern Dropdown Menu -->
+            <div class="relative inline-block">
+                <button id="btnPatternMenu" onclick="togglePatternDropdown()" class="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 transition text-xs font-semibold border border-slate-700 shadow text-slate-200">
+                    <i class="fa-solid fa-border-all text-blue-400 text-xs"></i>
+                    <span class="hidden lg:inline">Pauta:</span>
+                    <span id="txtPatternLabel" class="text-[10px] font-bold bg-slate-900 px-1.5 py-0.5 rounded">Blanca</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+                </button>
+                <div id="patternDropdown" class="hidden absolute top-full left-0 mt-1.5 w-40 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden py-1">
+                    <button onclick="setBoardPattern('none', 'Blanca')" class="w-full text-left px-3 py-1.5 text-xs font-semibold hover:bg-slate-700 flex items-center justify-between">
+                        <span>Lienzo Blanco</span>
+                        <i class="fa-regular fa-square text-slate-400"></i>
+                    </button>
+                    <button onclick="setBoardPattern('simple', 'Línea')" class="w-full text-left px-3 py-1.5 text-xs font-semibold hover:bg-slate-700 flex items-center justify-between">
+                        <span>Línea Simple</span>
+                        <i class="fa-solid fa-minus text-slate-400"></i>
+                    </button>
+                    <button onclick="setBoardPattern('doble', 'Pauta Doble')" class="w-full text-left px-3 py-1.5 text-xs font-semibold hover:bg-slate-700 flex items-center justify-between">
+                        <span>Pauta Doble</span>
+                        <i class="fa-solid fa-equals text-slate-400"></i>
+                    </button>
+                    <button onclick="setBoardPattern('grid', 'Cuadrícula')" class="w-full text-left px-3 py-1.5 text-xs font-semibold hover:bg-slate-700 flex items-center justify-between">
+                        <span>Cuadrícula</span>
+                        <i class="fa-solid fa-border-all text-slate-400"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TILE SIZE SLIDER CONTROLLER -->
+            <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-800/90 border border-amber-500/30 shadow-inner" title="Ajustar tamaño de fichas">
+                <i class="fa-solid fa-up-right-and-down-left-from-center text-amber-400 text-xs"></i>
+                <div class="flex flex-col">
+                    <div class="flex items-center justify-between text-[10px] font-bold text-amber-300">
+                        <span id="sliderModeLabel" class="hidden md:inline text-slate-300 font-medium">Tamaño</span>
+                        <span id="txtSizePx" class="bg-amber-500/20 px-1 rounded text-amber-300 font-mono">52 px</span>
+                    </div>
+                    <input type="range" id="sizeSlider" min="28" max="110" value="52" step="2" oninput="onSizeSliderChange(this.value)" class="w-16 sm:w-24 md:w-28 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Eraser Mode Switch -->
+            <button id="btnEraser" onclick="toggleEraser()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 transition text-xs font-semibold border border-slate-700 shadow text-slate-200">
+                <i class="fa-solid fa-eraser text-red-400 text-xs"></i>
+                <span class="hidden sm:inline">Goma</span>
+                <span id="statusEraser" class="text-[9px] uppercase font-bold px-1 py-0.2 rounded bg-slate-900 text-slate-400">OFF</span>
+            </button>
+
+            <!-- Reset Board Button -->
+            <button onclick="confirmResetBoard()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900/70 border border-rose-800/60 text-rose-300 active:scale-95 transition text-xs font-semibold shadow" title="Limpiar Pizarra">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+                <span class="hidden lg:inline">Limpiar</span>
+            </button>
+        </div>
+
+        <!-- Secondary Utilities -->
+        <div class="flex items-center gap-1.5">
+            <button id="btnAudio" onclick="toggleAudio()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 transition text-slate-300 border border-slate-700" title="Sonido">
+                <i id="iconAudio" class="fa-solid fa-volume-high text-emerald-400 text-xs"></i>
+            </button>
+            <button onclick="toggleFullscreen()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 transition text-slate-300 border border-slate-700" title="Pantalla Completa">
+                <i id="iconFullscreen" class="fa-solid fa-expand text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 relative p-1.5 sm:p-3 flex items-center justify-center overflow-hidden">
+        <div class="whiteboard-frame w-full h-full rounded-xl flex flex-col relative overflow-hidden">
+            <div class="whiteboard-shine"></div>
+
+            <!-- Whiteboard Interactive Surface -->
+            <div id="whiteboard" class="whiteboard-surface w-full h-full pattern-none relative overflow-hidden touch-none" onclick="onBoardBackgroundClick(event)">
+                <!-- Helper Watermark -->
+                <div id="emptyBoardMsg" class="absolute inset-0 flex flex-col items-center justify-center opacity-25 pointer-events-none select-none text-slate-500 gap-2">
+                    <i class="fa-solid fa-hand-pointer text-4xl sm:text-5xl animate-bounce"></i>
+                    <p class="text-xs sm:text-sm font-bold text-center px-4">Toca o arrastra cualquier grafía del menú inferior</p>
+                </div>
+
+                <!-- Placed Active Tiles -->
+                <div id="tilesContainer" class="w-full h-full relative"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- CLEAN BOTTOM TRAY (42 Characters: 27 Letters + 10 Digits + 5 Math Symbols) -->
+    <footer class="bg-slate-900 border-t border-slate-800 p-1.5 sm:p-2 z-30 shadow-2xl flex flex-col gap-1">
+        <!-- Live Counter & Selection Indicator Header -->
+        <div class="flex items-center justify-between px-2 text-[11px] font-semibold text-slate-400">
+            <div class="flex items-center gap-2">
+                <span class="text-slate-300 font-bold tracking-wide">MENÚ DE GRAFÍAS</span>
+                <span id="selectionHint" class="hidden md:inline text-[10px] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-500/20">
+                    <i class="fa-solid fa-info-circle mr-1"></i>Pulsa una ficha en la pizarra para ajustar su tamaño individual
+                </span>
+            </div>
+            <div class="text-[10px] text-slate-400">
+                <span id="boardCount" class="font-bold text-amber-400">0</span> fichas en pizarra
+            </div>
+        </div>
+
+        <!-- Single View Flexible Tray -->
+        <div class="bg-slate-950 p-1.5 rounded-xl border border-slate-800/80 shadow-inner flex flex-wrap items-center justify-center gap-0.5 sm:gap-1">
+            <!-- Vocals Group -->
+            <div id="groupVocales" class="flex items-center gap-0.5 sm:gap-1"></div>
+            
+            <div class="category-divider"></div>
+
+            <!-- Consonants Group -->
+            <div id="groupConsonantes" class="flex items-center flex-wrap justify-center gap-0.5 sm:gap-1"></div>
+
+            <div class="category-divider"></div>
+
+            <!-- Digits Group -->
+            <div id="groupDigitos" class="flex items-center gap-0.5 sm:gap-1"></div>
+
+            <div class="category-divider"></div>
+
+            <!-- Signs Group -->
+            <div id="groupSignos" class="flex items-center gap-0.5 sm:gap-1"></div>
+        </div>
+    </footer>
+
+    <!-- Clean Board Modal Dialog -->
+    <div id="resetModal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 max-w-xs w-full shadow-2xl text-center flex flex-col gap-3">
+            <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-2xl mx-auto">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-white">¿Limpiar la pizarra?</h3>
+                <p class="text-xs text-slate-400 mt-1">Se borrarán todas las grafías colocadas.</p>
+            </div>
+            <div class="flex items-center justify-center gap-2 mt-1">
+                <button onclick="closeResetModal()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex-1">
+                    Cancelar
+                </button>
+                <button onclick="executeResetBoard()" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold flex-1 shadow-lg shadow-rose-600/30">
+                    Sí, Limpiar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            isUppercase: true,
+            isEraserActive: false,
+            soundEnabled: true,
+            boardPattern: 'none',
+            tileIdCounter: 0,
+            placedTilesCount: 0,
+            defaultTileSize: 52,    // Default size in px for new tiles
+            selectedTileId: null     // Currently selected board tile ID
+        };
+
+        /* DATA DEFINITIONS */
+        const VOCALS = ['A', 'E', 'I', 'O', 'U'];
+        const CONSONANTS = ['B', 'C', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'Ñ', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y', 'Z'];
+        const DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        const MATH_SYMBOLS = ['+', '-', '×', '÷', '='];
+
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) audioCtx = new AudioContext();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playSound(type) {
+            if (!state.soundEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                const now = ctx.currentTime;
+
+                if (type === 'place') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(360, now);
+                    osc.frequency.exponentialRampToValueAtTime(140, now + 0.07);
+                    gain.gain.setValueAtTime(0.35, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.07);
+                    osc.start(now);
+                    osc.stop(now + 0.07);
+                } else if (type === 'erase') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.linearRampToValueAtTime(90, now + 0.1);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'toggle') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(500, now);
+                    osc.frequency.exponentialRampToValueAtTime(650, now + 0.05);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'clear') {
+                    [392, 523.25, 659.25].forEach((freq, idx) => {
+                        const o = ctx.createOscillator();
+                        const g = ctx.createGain();
+                        o.type = 'sine';
+                        o.frequency.setValueAtTime(freq, now + idx * 0.05);
+                        g.gain.setValueAtTime(0.18, now + idx * 0.05);
+                        g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.05 + 0.2);
+                        o.connect(g);
+                        g.connect(ctx.destination);
+                        o.start(now + idx * 0.05);
+                        o.stop(now + idx * 0.05 + 0.2);
+                    });
+                }
+            } catch (e) {
+                console.warn('Audio play error:', e);
+            }
+        }
+
+        function applyTileDimensions(tile, sizePx) {
+            tile.style.width = `${sizePx}px`;
+            tile.style.height = `${sizePx}px`;
+            // Proportionate font size based on tile height
+            const fontSize = Math.max(16, Math.round(sizePx * 0.62));
+            tile.style.fontSize = `${fontSize}px`;
+            tile.setAttribute('data-size', sizePx);
+        }
+
+        function onSizeSliderChange(newVal) {
+            const sizePx = parseInt(newVal, 10);
+            document.getElementById('txtSizePx').innerText = `${sizePx} px`;
+
+            if (state.selectedTileId) {
+                const selectedTile = document.getElementById(state.selectedTileId);
+                if (selectedTile) {
+                    applyTileDimensions(selectedTile, sizePx);
+                }
+            } else {
+                state.defaultTileSize = sizePx;
+            }
+        }
+
+        function selectBoardTile(tile) {
+            // Deselect previous
+            if (state.selectedTileId && state.selectedTileId !== tile.id) {
+                const prev = document.getElementById(state.selectedTileId);
+                if (prev) prev.classList.remove('selected-tile');
+            }
+
+            state.selectedTileId = tile.id;
+            tile.classList.add('selected-tile');
+
+            // Update slider value to match this tile's current size
+            const currentSize = parseInt(tile.getAttribute('data-size') || state.defaultTileSize, 10);
+            const slider = document.getElementById('sizeSlider');
+            slider.value = currentSize;
+            document.getElementById('txtSizePx').innerText = `${currentSize} px`;
+
+            document.getElementById('sliderModeLabel').innerText = 'Ficha';
+            document.getElementById('sliderModeLabel').classList.add('text-amber-400');
+        }
+
+        function deselectAllBoardTiles() {
+            if (state.selectedTileId) {
+                const prev = document.getElementById(state.selectedTileId);
+                if (prev) prev.classList.remove('selected-tile');
+                state.selectedTileId = null;
+            }
+
+            // Restore slider to default tile creation size
+            const slider = document.getElementById('sizeSlider');
+            slider.value = state.defaultTileSize;
+            document.getElementById('txtSizePx').innerText = `${state.defaultTileSize} px`;
+
+            document.getElementById('sliderModeLabel').innerText = 'Tamaño';
+            document.getElementById('sliderModeLabel').classList.remove('text-amber-400');
+        }
+
+        function onBoardBackgroundClick(e) {
+            // Deselect tile if clicking empty space on whiteboard surface
+            if (e.target.id === 'whiteboard' || e.target.id === 'tilesContainer' || e.target.id === 'emptyBoardMsg') {
+                deselectAllBoardTiles();
+            }
+        }
+
+        function buildGroupTiles(containerId, items, category) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            items.forEach(charUpper => {
+                const charToDisplay = (category === 'vocal' || category === 'consonante') 
+                    ? (state.isUppercase ? charUpper : charUpper.toLowerCase()) 
+                    : charUpper;
+
+                const tile = document.createElement('div');
+                tile.className = `ficha-tile ${category} flex-shrink-0`;
+                tile.innerText = charToDisplay;
+                tile.setAttribute('data-char', charUpper);
+                tile.setAttribute('data-cat', category);
+
+                // Pointer down listener creates a new board tile
+                tile.addEventListener('pointerdown', (e) => onTrayTilePointerDown(e, charToDisplay, category));
+
+                container.appendChild(tile);
+            });
+        }
+
+        function renderTray() {
+            buildGroupTiles('groupVocales', VOCALS, 'vocal');
+            buildGroupTiles('groupConsonantes', CONSONANTS, 'consonante');
+            buildGroupTiles('groupDigitos', DIGITS, 'digito');
+            buildGroupTiles('groupSignos', MATH_SYMBOLS, 'signo');
+        }
+
+        function onTrayTilePointerDown(e, charValue, catClass) {
+            e.preventDefault();
+            playSound('place');
+
+            const board = document.getElementById('whiteboard');
+            const boardRect = board.getBoundingClientRect();
+
+            const currentSize = state.defaultTileSize;
+
+            let x = e.clientX - boardRect.left - (currentSize / 2);
+            let y = e.clientY - boardRect.top - (currentSize / 2);
+
+            // Keep within board boundaries
+            x = Math.max(10, Math.min(x, boardRect.width - currentSize - 10));
+            y = Math.max(10, Math.min(y, boardRect.height - currentSize - 10));
+
+            const newTile = createBoardTile(charValue, catClass, x, y, currentSize);
+            selectBoardTile(newTile);
+            startDraggingTile(newTile, e);
+        }
+
+        function createBoardTile(charValue, catClass, x, y, sizePx) {
+            state.tileIdCounter++;
+            const tileId = 'tile-' + state.tileIdCounter;
+
+            const tile = document.createElement('div');
+            tile.id = tileId;
+            tile.className = `ficha-tile ${catClass} board-tile`;
+            tile.innerText = charValue;
+            tile.style.left = `${x}px`;
+            tile.style.top = `${y}px`;
+            tile.setAttribute('data-id', tileId);
+
+            applyTileDimensions(tile, sizePx || state.defaultTileSize);
+
+            tile.addEventListener('pointerdown', (e) => onBoardTilePointerDown(e, tile));
+
+            document.getElementById('tilesContainer').appendChild(tile);
+            
+            updateTileCounter(1);
+            hideEmptyBoardMsg();
+
+            return tile;
+        }
+
+        function onBoardTilePointerDown(e, tile) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (state.isEraserActive) {
+                if (state.selectedTileId === tile.id) {
+                    deselectAllBoardTiles();
+                }
+                removeBoardTile(tile);
+            } else {
+                selectBoardTile(tile);
+                playSound('toggle');
+                startDraggingTile(tile, e);
+            }
+        }
+
+        function startDraggingTile(tile, e) {
+            tile.classList.add('dragging');
+
+            const board = document.getElementById('whiteboard');
+            const boardRect = board.getBoundingClientRect();
+            const tileRect = tile.getBoundingClientRect();
+
+            const offsetX = e.clientX - tileRect.left;
+            const offsetY = e.clientY - tileRect.top;
+
+            // Bring tile to front
+            tile.parentElement.appendChild(tile);
+
+            function onPointerMove(moveEvent) {
+                moveEvent.preventDefault();
+
+                let newX = moveEvent.clientX - boardRect.left - offsetX;
+                let newY = moveEvent.clientY - boardRect.top - offsetY;
+
+                const maxX = boardRect.width - tileRect.width;
+                const maxY = boardRect.height - tileRect.height;
+
+                newX = Math.max(0, Math.min(newX, maxX));
+                newY = Math.max(0, Math.min(newY, maxY));
+
+                tile.style.left = `${newX}px`;
+                tile.style.top = `${newY}px`;
+            }
+
+            function onPointerUp(upEvent) {
+                tile.classList.remove('dragging');
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', onPointerUp);
+                window.removeEventListener('pointercancel', onPointerUp);
+            }
+
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', onPointerUp);
+            window.addEventListener('pointercancel', onPointerUp);
+        }
+
+        function removeBoardTile(tile) {
+            playSound('erase');
+            tile.style.transform = 'scale(0) rotate(180deg)';
+            tile.style.opacity = '0';
+            tile.style.transition = 'transform 0.18s ease, opacity 0.18s ease';
+
+            setTimeout(() => {
+                if (tile.parentElement) {
+                    tile.parentElement.removeChild(tile);
+                    updateTileCounter(-1);
+                }
+            }, 180);
+        }
+
+        function updateTileCounter(delta) {
+            state.placedTilesCount = Math.max(0, state.placedTilesCount + delta);
+            document.getElementById('boardCount').innerText = state.placedTilesCount;
+
+            if (state.placedTilesCount === 0) {
+                showEmptyBoardMsg();
+            } else {
+                hideEmptyBoardMsg();
+            }
+        }
+
+        function showEmptyBoardMsg() {
+            document.getElementById('emptyBoardMsg').style.display = 'flex';
+        }
+
+        function hideEmptyBoardMsg() {
+            document.getElementById('emptyBoardMsg').style.display = 'none';
+        }
+
+        function toggleCase() {
+            state.isUppercase = !state.isUppercase;
+            playSound('toggle');
+
+            const label = document.getElementById('txtCaseLabel');
+            const badge = document.getElementById('badgeCase');
+
+            if (state.isUppercase) {
+                label.innerText = 'MAYÚSCULAS';
+                badge.innerText = 'ABC';
+            } else {
+                label.innerText = 'minúsculas';
+                badge.innerText = 'abc';
+            }
+
+            renderTray();
+        }
+
+        function toggleEraser() {
+            state.isEraserActive = !state.isEraserActive;
+            playSound('toggle');
+
+            const btn = document.getElementById('btnEraser');
+            const status = document.getElementById('statusEraser');
+            const body = document.body;
+
+            if (state.isEraserActive) {
+                btn.classList.remove('bg-slate-800', 'text-slate-200');
+                btn.classList.add('bg-rose-600', 'text-white', 'shadow-rose-600/40', 'ring-2', 'ring-rose-400');
+                status.innerText = 'ON';
+                status.classList.remove('bg-slate-900', 'text-slate-400');
+                status.classList.add('bg-white', 'text-rose-600');
+                body.classList.add('eraser-mode-active');
+            } else {
+                btn.classList.add('bg-slate-800', 'text-slate-200');
+                btn.classList.remove('bg-rose-600', 'text-white', 'shadow-rose-600/40', 'ring-2', 'ring-rose-400');
+                status.innerText = 'OFF';
+                status.classList.add('bg-slate-900', 'text-slate-400');
+                status.classList.remove('bg-white', 'text-rose-600');
+                body.classList.remove('eraser-mode-active');
+            }
+        }
+
+        function togglePatternDropdown() {
+            const dropdown = document.getElementById('patternDropdown');
+            dropdown.classList.toggle('hidden');
+            playSound('toggle');
+        }
+
+        function setBoardPattern(patternClass, labelText) {
+            state.boardPattern = patternClass;
+            playSound('toggle');
+
+            const board = document.getElementById('whiteboard');
+            board.className = `whiteboard-surface w-full h-full relative overflow-hidden touch-none pattern-${patternClass}`;
+
+            document.getElementById('txtPatternLabel').innerText = labelText;
+            document.getElementById('patternDropdown').classList.add('hidden');
+        }
+
+        window.addEventListener('click', (e) => {
+            const patternMenu = document.getElementById('btnPatternMenu');
+            const dropdown = document.getElementById('patternDropdown');
+            if (patternMenu && !patternMenu.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        function toggleAudio() {
+            state.soundEnabled = !state.soundEnabled;
+            const icon = document.getElementById('iconAudio');
+            const btn = document.getElementById('btnAudio');
+
+            if (state.soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-emerald-400 text-xs';
+                btn.classList.remove('opacity-50');
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-slate-400 text-xs';
+                btn.classList.add('opacity-50');
+            }
+        }
+
+        function toggleFullscreen() {
+            playSound('toggle');
+            const icon = document.getElementById('iconFullscreen');
+
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    icon.className = 'fa-solid fa-compress text-xs';
+                }).catch(err => {
+                    console.warn(`Fullscreen error: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().then(() => {
+                        icon.className = 'fa-solid fa-expand text-xs';
+                    });
+                }
+            }
+        }
+
+        function confirmResetBoard() {
+            if (state.placedTilesCount === 0) return;
+            playSound('toggle');
+            document.getElementById('resetModal').classList.remove('hidden');
+        }
+
+        function closeResetModal() {
+            playSound('toggle');
+            document.getElementById('resetModal').classList.add('hidden');
+        }
+
+        function executeResetBoard() {
+            playSound('clear');
+            const container = document.getElementById('tilesContainer');
+            container.innerHTML = '';
+            state.placedTilesCount = 0;
+            state.selectedTileId = null;
+            deselectAllBoardTiles();
+            updateTileCounter(0);
+            closeResetModal();
+        }
+
+        // Initialize Application
+        window.addEventListener('DOMContentLoaded', () => {
+            renderTray();
+
+            const unlockAudio = () => {
+                getAudioContext();
+                window.removeEventListener('pointerdown', unlockAudio);
+                window.removeEventListener('keydown', unlockAudio);
+            };
+            window.addEventListener('pointerdown', unlockAudio);
+            window.addEventListener('keydown', unlockAudio);
+        });
+    </script>
+</body>
+</html>
